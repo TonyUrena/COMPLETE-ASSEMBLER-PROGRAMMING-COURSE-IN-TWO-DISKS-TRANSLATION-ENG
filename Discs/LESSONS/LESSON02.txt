@@ -1,0 +1,447 @@
+ASSEMBLER COURSE - LESSON 2
+
+Have you understood exactly how the source LESSON1a.s works???
+If you haven't understood it, then you're hopeless, and you should quit the course.
+
+Now let's delve deeper into the language of the 68000. I wanted to anticipate with the first source the fact that the processor essentially serves to organize everything, but by itself only changes values in its memory; by putting certain values in specific memory areas
+like $dffxxx or $bfexxx, power is supplied to the pins of the graphics, sound, and port chips, and consequently, you can, as in the example before, change the color of the screen, or by reading these locations know at which line the electronic brush has arrived or if the button of the mouse is pressed. To make a game or a demo, it is necessary to use a large number of these addresses, called REGISTERS, and therefore it is necessary to know them at least as much as the language of the 68000, (MOVE, JSR, ADD, SUB, etc.) with which you
+set them.
+For this type of programming, as I have already said, the LIBRARIES are not used of the kickstart 1.2/1.3/2.0/3.0 ROM (That is, its routines, or subprograms that allow you to open a Workbench window or read a file, for example) that is, they are used very little: for example, to prevent the workbench from crashing or to disable multitasking.
+I believe it is necessary therefore in this lesson no. 2 to deepen the use of the
+68000, once its role has been understood.
+
+The most important thing to learn is the addressing modes of the processor, more than the commands themselves, in fact once that is learned, every command uses the same syntax for addressing and it is enough to know what the command does. We have already said that the processor operates on memory which is divided into locations or addresses, the unit of measurement being the byte, and usually the address is in hexadecimal format, i.e., in a numeric format different from the decimal one, since it has a base of 16.
+This is absolutely not a problem: while with decimal numbers a sequence of 30 numbers for example is: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 etc, in hexadecimal it is 1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,10,11,12,13,14,15,16,17,18,19,1a,1b,1c,1d,1e etc., that is, in hexadecimal numbers the first 6 letters of the alphabet are also found as if a were 10, b 11, etc.; to convert a number from hexadecimal to decimal or vice versa just use the "?" command of the assembler: for example doing "?10000" you will get $2710, the corresponding value in hexadecimal (hexadecimal numbers start with $, decimal ones are not preceded by anything and binary ones by a %). Hexadecimal numbers are used because they are closer to the way the computer thinks, which is obviously BINARY, i.e., composed of only 0s and 1s.
+As an example to start understanding the various addressing modes of the 68000 we will use the CLR command, which zeros the indicated memory location:
+
+    CLR.B	$40000		; do you remember the difference between .B, .W, and .L?
+
+This instruction "clears", that is, zeros the byte at $40000, the address $40000. This is the simplest case, called ABSOLUTE; that is, the CLR is directly indicated at which address to do the CLR; in the assembler LABELS are used, which serve to identify a point in the program, in which there may be for example a byte to indicate: in this case instead of writing the address the name of the LABEL will be written; the assembler then will write the actual address of the byte in question: for example, if
+we modified our first listing like this:
+
+Waitmouse:
+    move.w $dff006,$dff180  ; put the value of $dff106 in $dff180
+                            ; i.e., the VHPOSR in COLOR0
+    btst #6,$bfe001         ; left mouse button pressed?
+    bne.s Waitmouse         ; if not return to waitmouse and repeat
+                            ; (.s is equivalent to .b for this
+                            ; type of commands: bne.s = bne.b)
+    clr.b data1             ; CLEAR DATA1
+    rts                     ; exit
+
+    data1:
+    dc.b $30                ; dc.b means PUT IN MEMORY THE FOLLOWING BYTE
+                            ; in this case a $30 is put under data1:
+
+Before exiting with the RTS, the byte marked with the label would be zeroed data1:, which would be allocated in the assembly (or compilation) phase to some very specific absolute address, for example if the program were assembled from ASMONE starting from $50000, it would be found in memory after assembly a CLR.B $5001c, that is, the real address of data1:, certainly not CLR.B DATA1, since data1: is a name given by the programmer to mark dc.b $30; from here you can also understand the usefulness of labels, in fact if you had to write the listing indicating the numeric address every time, in the event that a routine were added in the middle of the program you would have to rewrite all the addresses. To see which address the labels are assembled to, just use the D command of ASMONE: for example after assembling LESSON1a.s by doing "D waitmouse" you will get the disassembled memory starting from waitmouse, and in the listing not the labels will appear, but the real addresses.
+
+In the example sources of the course you will notice that numerical addresses are never indicated, only LABELS, apart from special addresses like $dffxxx or $bfexxx.
+In the last example I used a dc.b, which is an assembler command that serves to insert defined bytes; for example to insert a $12345678 in a certain point of the program, you will have to use the DC command, and you can use it in the 3 forms .B (BYTE), .W (WORD), and .L (LONGWORD):
+
+    dc.b	$12,$34,$56,$78	; in bytes
+
+    dc.w	$1234,$5678	; in words
+
+    dc.l	$12345678	; in longwords
+
+This command is also used to put phrases in memory, for example
+to put in the listing the text that will be printed on the screen by a
+PRINT routine that prints what is at the TEST label:
+
+TEST:
+    dc.b "best regards"
+
+or:
+    dc.b 'best regards'
+
+Usually the text is terminated with a zero:
+
+    dc.b "best regards",0
+
+You need to remember to enclose the text in quotes and use dc.b, not dc.w or dc.l!! The characters are each one byte long, and they correspond to a certain byte: for example, try ?"a", and you'll see that it corresponds to $61, so writing dc.b "a" will be equivalent to writing dc.b $61. Pay attention that uppercase letters have different values! For example, "A" is $41. The most common use of dc.b is to define bytes, words, or larger areas where data will be stored. For example, if you want to create a program that records the number of times a certain key is pressed, you'll need to define a label followed by, for example, a zeroed byte, and each time you'll add 1 with the ADD command to that label, i.e., to that byte under the label, and at the end, you just need to read the value of the byte:
+
+    ; if the key is pressed then ADDQ.B #1,NUMPRESSED, which means
+    ; add one to the byte under the label numpressed.
+
+NUMPRESSED:
+    dc.b    0
+
+At the end of the program, the initial 0 will be changed to the number of times the key was pressed. A similar example is in LESSON2a.s, which also contains extensive comments. I recommend loading it into another text buffer: to select one of the 10 available, just press a key from F1 to F10. For example, if you have LESSON2.TXT in the buffer of F1, press F2, and load LESSON2a.s with the command "R". Later, you can load LESSON2b.s and the following ones into the buffer of F3, F4..., so you always have them available by pressing a single key; however, it's better if you follow LESSON.TXT, and as you find the indication of the example source, continue loading it into another buffer, executing and verifying it, then go back to reading LESSON from where you left off: this I believe is the best system to learn, as you do a bit of theory and immediately verify it.
+
+Did you read the comments of LESSON2a.S?
+
+You will have seen the importance of the byte, the word, and the longword: regarding binary, to count the bits, you start from the right and go to the left, "opposite" in short, and you start from 0, not from 1, so a byte (which has 8 bits) starts from 0 and goes up to 7. For example, in this number:
+
+    %000100010000
+
+Bits 4 and 8 are "on". To help you number them, you can do it like this:
+
+perl
+
+               ;5432109876543210   - an intelligent use of ;
+     move.w   #%0011000000100100,$dffxxx
+
+In this case, bits 2, 5, 12, and 13 of the word are "on". Remember that a byte has 8 bits, a word has 16 (from 0 to 15), and a longword has 32 (from 0 to 31).
+
+In the instruction:
+
+  BTST #6,$bfe001
+
+It checks if bit 6 of byte $bfe001 is cleared: if it is:
+
+   ;76543210
+   %01000000
+
+Bit 6 is instead set, so the mouse is not pressed!!!
+
+To recap, a BYTE is made up of 8 bits: to indicate them, the rightmost one is bit 0, also called the LEAST SIGNIFICANT BIT. The numbering proceeds from right to left up to 7 (i.e., the eighth because it starts from 0 instead of 1: 01234567, meaning 8 bits); bit 7 is called the MOST SIGNIFICANT BIT. It's more significant because it counts more just like the leftmost one counts more in a big number like one in the hundred thousand's place compared to zeros on the right. A byte can be at most 255, i.e., %11111111.
+
+A WORD instead is made up of 16 bits, i.e., two bytes, likewise you start from the right with bit 0, always the least significant, up to bit 15 on the left, the most significant. It can hold up to 65535.
+
+A LongWord is made up of 32 bits, from 0 to 31, meaning 4 bytes, or 2 words, or if you prefer, one word and 2 bytes, essentially always 32 bits attached to each other which can hold up to 4294967299 (4 billion!! like the lottery!).
+
+Now we'll proceed with different addressing modes: we've seen that if we do, for example, CLR.W $100, we'll clear locations $100 and $101, i.e., a word starting from $100 (since a word is 2 bytes, and locations are divided into bytes, we'll clear 2 bytes!!). Similarly, a MOVE.B $100,$200 will copy the content from $100 to $200. This can also be indicated with LABELS instead of specifying the address, for example, MOVE.B LABEL1,LABEL2, meaning copy the byte from LABEL1 to LABEL2. However, there are also different addressing modes; in fact, I can do a MOVE.L #$50000,LABEL2, meaning put a FIXED value in LABEL2. If for example, LABEL2 was at address $60000, we'd move the value $00050000 into $60000, meaning the bytes become $60000: 00 05 00 00. Indeed, when there's a pound symbol (#) before a number or a label, it means we're moving a predetermined value, not the value contained at the address indicated by that value, as it happens when there are no pound symbols before the number or LABEL. For example, let's analyze these 2 cases:
+
+    MOVE.L $50000,$60000    ; the value contained in the memory addresses
+                            ; $50000,$50001,$50002,$50003
+                            ; are copied into $60000,
+                            ; $60001,$60002,$60003, meaning a longword
+                            ; consisting of 4 bytes is copied from one
+                            ; address to the other.
+
+    MOVE.L #$50000,$60000   ; This time $60000 gets the
+                            ; number indicated after the pound symbol,
+                            ; i.e., $50000. Notice that this time
+                            ; address $50000 is not read at all
+                            ; and it's not relevant, only $60000 is implied.
+
+If we use labels, there are no changes:
+
+    MOVE.L DOG,CAT          ; The content of the longword DOG, i.e.,
+                            ; $00123456, is copied into the longword
+                            ; CAT (indeed $123456 is the first thing
+                            ; under the label DOG)
+
+Before the instruction:
+
+DOG:
+    dc.l    $123456
+
+CAT:
+    dc.l    0
+
+After the instruction:
+
+DOG:
+    dc.l    $123456
+
+CAT:
+    dc.l    $123456
+
+    MOVE.L #DOG,CAT ; This time the ADDRESS of the label
+    ; COUNTER is copied into the label RESULT
+
+Note that if you did a MOVE.W #DOG,CAT or a MOVE.B #DOG,CAT, the assembler would give an error, because an ADDRESS is long a LONGWORD. In memory, a MOVE.L #LABEL,LABEL becomes an instruction like MOVE.L #$12345,$12345, meaning the assembler writes the real address in place of the labels. You can verify this with LESSON2b.s.
+
+Now we'll tackle other addressing modes with registers (which are more difficult); as I mentioned earlier, there are 8 data registers and 8 address registers: namely, D0,D1,D2,D3,D4,D5,D6,D7 are the DATA registers, while A0,A1,A2,A3,A4,A5,A6,A7 are the address registers. I should mention that register A7 is also called SP or STACK POINTER, and it's a special register we'll talk about later, so consider using address registers only up to A6. These addresses are each one longword long, and they are in practice a small memory inside the 68000, which consequently is very fast. Various things can be done through registers, in fact, there is a particular syntax for registers. First of all, you can't work by byte with the ADDRESS registers: for example, a move.b LABEL,A0 gives an error message. With the address registers A0,A1, etc., you can therefore work for longword or for word. With the Data registers D0,D1, etc., instead, you can use both .b, .w, and .l. The address registers are dedicated to holding addresses, and they have dedicated commands, such as LEA, which stands for LOAD ENTIRE ADDRESS, meaning it loads the address entirely into the register (indeed, this command can't be lea.b, lea.w, or lea.l, but only LEA being always .L). For example, to put a value in the address registers, you can use 2 methods:
+
+1)  MOVE.L #$50000,A0 (or MOVE.L #LABEL,A0)
+
+2)  LEA $50000,A0 (or LEA LABEL,A0)
+
+While the first method can be used with both addresses and registers (e.g., move.l #$50000,d0 - move.l #$50000,LABEL - MOVE.L #$LABEL,LABEL...)
+
+P.S: Writing move.l #$50000,d0 or MOVE.L #$50000,D0 is identical, you can also write MoVe.L #$50000,d0, the result at the program level is identical, you can just aesthetically create funny or horrible situations. A different consideration must be made for LABELS: the labels can be identified even if you write them in lowercase in one part of the listing and uppercase in another, but only because the TRASH'M-ONE option is set for this preference, which is UCase=UCase in the "Assembler/Assemble.." menu, meaning "Upper Case=Lower Case, i.e., uppercase letters=lowercase letters". If you remove this option, the recognition of the labels will also take into account the case, so Cane: will be different from CANE: or from cAne: or caNe, etc.
+
+The second method with LEA can only be used with the address registers, consequently, you can understand that this way is faster: so remember that if you want to put an address in a register a0,a1,... you have to use LEA followed by the address WITHOUT THE POUND SYMBOL and by the register in question. Pay attention to these 2 examples:
+
+    MOVE.L $50000,A0    ; put the value contained in
+                        ; $50000 location into a0 (+$50001,$50002 and $50003
+                        ; since 1 location is 1 byte long, and
+                        ; move.l copies 4 bytes = 4 locations starting in
+                        ; this case from $50000
+
+    LEA $50000,A0 ; put the number $50000 into a0
+
+So be careful when handling the MOVE with or without the pound symbol and the LEA, because it's easy in the early stages to make mistakes and put the address instead of the value of that address in the register or vice versa. As an additional comment on this difference, consult the example program LESSON2c.s
+
+With the address registers, various types of addressing are possible: To start, let's analyze these 2 instructions:
+
+    move.l    a0,d0     ; Put the number contained in a0 into register d0
+    move.l    (a0),d0   ; Put the longword contained at the address in a0
+                        ; into register d0
+
+The addressing within parentheses is called INDIRECT, because instead of being copied DIRECTLY, the value in a0 is copied from the value contained in the address in a0. A practical example is in LESSON2d.s
+
+By using indirect addressing, it is possible to act on addresses INDIRECTLY, for example by putting the address of the mouse button and color 1 in registers, you can rewrite the code of lesson 1. This is what I did in LESSON2e.s
+
+Let's make the last examples to remove any doubts about indirect addressing:
+
+scss
+
+move.l a0,d0		; copy the value of A0 into register d0
+move.b (a0),d0		; copy the byte contained at the address
+			        ; in a0 into register d0
+move.w (a0),(a1) 	; copy the word contained at the address
+			        ; in a0 to the address contained in a1
+			        ; (and following, since a word is made of
+			        ; 2 bytes, which is 2 addresses!)
+clr.w	(a3)		; clear (zero) the word (2 bytes) "inside"
+			        ; the address in a3 - More precisely,
+			        ; the byte in the address in
+			        ; a3 and the following address are zeroed.
+clr.l	(a3)		; Same as above, but 4 addresses are zeroed
+			        ; (a long = 4 bytes = 4 addresses)
+move.l	d0,(a5)		; copy the value of d0 into the address
+			        ; contained in a5 (more precisely, I should say
+			        ; into the address in a5, and the following 3,
+			        ; since a long occupies 4 addresses)
+move.l	d0,a5		; copy the value of d0 into a5
+
+Be careful! Remove any doubts about the addressing modes studied so far, also consulting the sources up to LESSON2e.s, because the addressing modes I will talk about now are based on those indirect ones.
+
+I inform you that this is the most abstract part of lesson 2, as you have to learn the last addressing modes of the processor, but I assure you that from lesson 3 onwards you will put everything into practice and see video effects with the copper!, so consider that once this part is over the rest of the course will be all more PRACTICAL: for every explanation there will be a new special effect or ultra-vivid color, so make the effort not to get bored and not to give up now, because I myself gave up approximately at this point the first time I tried to learn to program in ASM, precisely because I was discouraged by the MESS of commands and open and closed parentheses that I could no longer follow. But I assure you that once you've learned to read the commands, you can start like a bullet and learn on your own by reading listings here and there, taking bigger and bigger steps: it's like learning the rules of a sport: someone who doesn't know the 68000 instruction set is like someone who doesn't know the rules, for example, of soccer: watching the games (the listings) they won't understand anything about what those guys are doing in a field kicking a ball, and they'll get bored to death, but once the rules are understood (addressing modes) they can interpret the phases of the games and learn more and more playing techniques (programming tricks and graphic registers).
+
+Let's see 2 other addressing modes:
+
+    move.l	(a0)+,d0	; Indirect with post-increment
+    move.l	-(a0),d0	; Indirect with pre-decrement
+
+Let's analyze the first addressing mode assuming this situation:
+
+    lea	GRANDFATHER,a0	; let's put in a0 the address of GRANDFATHER:
+    MOVE.L	(a0)+,d0	; let's put in d0 the .L value contained
+                        ; by the address in a0, that is $3231020
+                        ; (like a normal MOVE.L (a0),d0)
+                        ; then WE ADD 4 TO THE VALUE IN a0
+                        ; that is, we POINT to the next longword
+                        ; with the address in a0; if it had been a
+                        ; move.w (a0)+,d0 after a0 (POST-INCREMENT)
+                        ; 2 would have been added (a word=2),
+                        ; while in the case of a MOVE.B (a0)+,d0
+                        ; 1 would have been added (a byte),
+                        ; that is, the next address would have been pointed to.
+    MOVE.L	(a0)+,d1	; same thing: copy into d1 the value .L
+                        ; contained at the address in a0, which now
+                        ; contains the address of GRANDFATHER+one longword,
+                        ; that is, GRANDFATHER+4, that is $13478.
+    rts			        ; EXIT!
+
+GRANDFATHER:
+    dc.l $3231020,$13478
+
+    END
+
+We can translate this type of addressing with 2 instructions:
+
+1)  MOVE.L (a0)+,LABEL
+
+is equivalent to:
+
+1b) MOVE.L (A0),LABEL   ; copy a long from the address in a0
+                        ; into the label
+ADDQ.W #4,a0            ; Add 4 to a0 (.L=4)
+                        ; NOTE: if a number less than 9 is added,
+                        ; use the ADDQ command instead of ADD
+                        ; because it is dedicated to such numbers and is faster.
+                        ; Also on ADDRESS REGISTERS if the number
+                        ; we add or subtract is less than
+                        ; $FFFF, that is a word, .W can be used
+                        ; instead of .L, and it will still act on
+                        ; the entire longword of the address.
+In the same way:
+
+    MOVE.W (a0)+,LABEL
+
+is equivalent to:
+
+2b) MOVE.W (A0),LABEL   ; copy a word from the address in a0
+                        ; into the label
+    ADDQ.W #2,a0        ; Add 2 to a0 (.W=2)
+
+In the same way:
+
+    MOVE.B (a0)+,LABEL
+
+is equivalent to:
+
+3b) MOVE.B (A0),LABEL   ; copy the byte contained at the address
+                        ; in a0 into the label
+    ADDQ.W #1,a0        ; Add 1 to a0 (.B=1)
+
+Summarizing in other terms, indirect addressing with post-increment can be compared to a worker on an assembly line who FIRST performs his MOVE or his instruction on the piece on the conveyor belt, and every time he has finished his work on the piece, he moves the conveyor belt (the address in a0) FORWARD with a pedal (the +). A loop example might be clearer:
+
+Start:
+    lea $60000,a0   ; start cleaning
+    lea $62000,a1   ; end of cleaning
+CLELOOP:
+    clr.l (a0)+     ; clear a long from the address in A0 and increase a0
+                    ; by a long, that is by 4 addresses, in other
+                    ; words, clear a long and go to the next one
+    cmp.l a0,a1     ; Is A0 at $62000? That is, is a0 equal to a1?
+    bne.s CLELOOP   ; if not yet, continue with another CLELOOP cycle
+    rts
+
+As you can see, this program clears memory from address $60000 to $62000, using a clr (a0)+ repeated until the desired address is reached. A similar example can be found in Lesson2f.s
+
+Now we will learn about indirect addressing with pre-decrement, which is an addressing mode opposite to the one just described, in fact, instead of increasing the address contained in the register after executing the operation, with a clr.l -(a0), for example, a0 is decremented first, then the instruction is executed on the new address (in this case a0-4). Example:
+
+lea	GRANDFATHER,a0	    ; let's put in a0 the address of GRANDFATHER:
+    MOVE.L	-(a0),d0	; a0 is decremented, in this case
+    rts			        ; being a .L instruction it is decremented
+                        ; by 4, then the value .L contained at the address
+                        ; in a0, that is $12345678, that is GRANDFATHER-4
+                        ; (the initial value remains in the register -4)
+    dc.l	$12345678	; if it had been a
+GRANDFATHER:            ; move.w -(a0),d0 a0 BEFORE (PRE-INCREMENT)
+    dc.l $ffff0f0f      ; 2 would have been subtracted (a word=2),
+                        ; while in the case of a MOVE.B -(a0),d0
+    END                 ; 1 would have been subtracted (a byte),
+                        ; that is, the previous address would have been pointed to.
+
+We can translate this type of addressing with 2 instructions:
+
+    MOVE.L -(a0),LABEL
+
+is equivalent to:
+
+1b) SUBQ.W #4,a0        ; Subtract 4 from a0 (.L=4)
+                        ; NOTE: if a number less than 9 is subtracted,
+                        ; use the SUBQ command instead of SUB
+                        ; because it is dedicated to such numbers and is faster.
+
+    MOVE.L	(A0),LABEL	; copy a long from the address in a0
+			            ; into the label
+
+Similarly:
+
+    MOVE.W -(a0),LABEL
+
+is equivalent to:
+
+2b) SUBQ.W #2,a0        ; Subtract 2 from a0 (.W=2)
+    MOVE.W (A0),LABEL   ; copy a word from the address in a0
+                        ; into the label
+
+Similarly:
+
+    MOVE.B -(a0),LABEL
+
+is equivalent to:
+
+3b) SUBQ.W #1,a0        ; subtract 1 from a0 (.B=1)
+    MOVE.B (A0),LABEL   ; copy the byte contained at the address
+                        ; in a0 into the label
+
+Summarizing with the worker analogy as before, indirect addressing with pre-decrement can always be compared to a worker on an assembly line who FIRST moves the conveyor belt BACKWARDS (the address in a0) with a pedal (the -), THEN performs his MOVE or his instruction on the piece that is on the conveyor belt. A loop example:
+
+Start:
+    lea $62000,a0   ; start cleaning
+    lea $60000,a1   ; end of cleaning
+CLELOOP:
+    clr.l -(a0)     ; decrease a0 by a long and clear that long
+                    ; in other words, go to the previous long and clear it
+    cmp.l a0,a1     ; Is A0 at $60000? That is, is a0 equal to a1?
+    bne.s CLELOOP   ; if not yet, continue with another CLELOOP cycle
+    rts
+
+As you can see, this program clears memory from address $62000 to $60000, using a clr -(a0) repeated until the desired address is reached (Backwards though! while with (a0)+ you start from $60000 and every 4 you reach $62000, in this case you start from $62000 and you reach $60000 by going backwards every 4). See Lesson2g.s and Lesson2h.s to verify the last 2 addressing modes.
+
+Now we will learn how to use the address offset:
+a MOVE.L $100(a0),d0 copies into d0 the long located at the address a0+$100, namely: if for example in A0 we had the address $60200, d0 will contain the longword located at address $60300.
+Similarly, a MOVE.L -$100(a0),d0 will copy into d0 the long starting from address $60100. Note that a0 does not change value: the processor simply calculates each time at which address to operate, by summing the value before the parentheses and the address in the register within the parentheses. The maximum address offset is from -32768 to 32767 (-$7FFF, $8000).
+An example of this addressing mode is found in Lesson2i.s
+
+The last type of addressing is this:
+
+    MOVE.L	50(a0,d0),label
+
+which has both an ADDRESS OFFSET (the 50) and an INDEX (the d0):
+the address offset and the content of d0 are all added to define the address from which to copy the content. In practice, it's like the address offset, but in addition, the content of the other register is added to the address offset, which in this case, however, ranges from a minimum of -128 to a maximum of +128.
+I don't want to bore you with other examples of this addressing mode; you can check it out when you come across it in the upcoming listings.
+
+To conclude LESSON2, which, if you followed well, makes you able to follow the operations of any program in ASM, it is essential to explain the DBRA loop, which is used very often: using a data register, you can make instructions execute several times, just put in the data register (whether it is d0, d1...) the number of times minus one.
+For example, the memory clearing routine made with the CLR.l (a0)+ can be modified with a DBRA loop that executes the cleaning the desired number of times:
+
+Start:
+    lea $60000,a0           ; Start
+    move.l #($2000/4)-1,d0  ; Put in d0 the number of cycles needed
+                            ; to clear $2000 bytes: that is
+                            ; $2000/4 (i.e. DIVIDED BY 4, because every
+                            ; clr.l clears 4 bytes), all -1,
+                            ; because the loop is executed one more time.
+CLEARLOOP:
+    CLR.L (a0)+
+    DBRA d0,CLEARLOOP
+    rts
+
+This routine clears from $60000 to $62000 as the previous example where with the CMP command a0 is compared with a1, that is, it checks if we have reached $62000, which is in a1. In this case, however, CLR is executed 2047 times; indeed try ?($2000/4)-1 from ASMONE. The DBRA works like this: for example, if the first time 2047 is put in d0, CLR is executed, then when reaching DBRA d0, d0 is decreased by 1, and the processor jumps again to CLR; it executes it, and so on, until d0 is exhausted. You have to put the necessary number of cycles minus one because the first time the loop is executed, d0 is not decremented.
+
+As a final example, study Lesson2l.s, which has subroutines called with BSR and the DBRA loop in action, useful to understand the structure of a complex program.
+
+To finish, I would like to point out the difference between a BSR and a BEQ/BNE:
+in the case of BSR label, the processor jumps to execute the routine under the label, until it finds the RTS, which makes it return to execute the instruction under the BSR label, so it can be said that it has executed a SUBROUTINE, that is a routine executed in the middle of another routine:
+
+main:
+    move.l  thing1,d0
+
+    move.l	thing2,d1
+
+    bsr.s	subroutine
+
+    move.l	thing3,d2
+
+    move.l	thing4,d3
+
+    rts	; END OF MAIN ROUTINE, RETURN TO ASMONE
+
+subroutine:
+    move.l junk,d4
+
+    move.l	junk2,d5
+
+rts	; END OF SUBROUTINE, RETURN TO  "move.l thing3,d0", that is,
+	; under the bsr.s subroutine
+
+In the case of a BRANCH beq/bne instead, one takes EITHER one path OR the other:
+
+main:
+    move.l thing1,d0
+
+    move.l	thing2,a0
+
+    cmp.b	d0,a0
+    bne.s	path2
+
+    move.l	thing3,d1
+
+    cmp.b	d1,a0
+    beq.s	path3
+
+    move.l	thing4,d0
+
+    rts	; END OF MAIN ROUTINE, RETURN TO ASMONE
+
+path2:
+    move.l junk,d5
+
+    move.l	junk2,d6
+
+    rts	; END OF ROUTINE, RETURN TO ASMONE, not under the bne!!!
+        ; here we chose this path, and when an RTS is found
+        ; we return to ASMONE!!!
+
+path3:
+    move.l junk3,d1
+
+    move.l	junk4,d2
+
+    rts	; END OF ROUTINE, RETURN TO ASMONE, not under the beq!!!
+        ; here we chose this path, and when an RTS is found
+        ; we return to ASMONE!!!
+
+The same goes for the BRA label, which means JUMP TO label, being the equivalent of JMP, which means it's like a train finding a switch on the tracks. It doesn't return to the switch once it's done with the track!! It reaches the end of the track and that's it, no teleporting back like in Star Trek.
+
+For one last clarification on address registers, refer to Lesson2m.s.
+
+To load LESSON3.TXT, you can do it in two ways: either type "R" and press Enter, which opens a requester where you can select with the mouse which text to load (in this case df0:SORGENTI/LESSON3.TXT), or you need to make sure you're in the right directory with "V df0:LEZIONI" and then you can load it later with a simple "R LESSON3.TXT".
